@@ -1,0 +1,11 @@
+# Global defaults for the showcase player and build pipeline.
+# Durations accept strings ("40s", "2m", "1h") or integer seconds.
+
+duration: 40s
+defaultGroup: web
+
+youtube:
+  mute: true
+  captions: true
+  captionLang: en
+  controls: false

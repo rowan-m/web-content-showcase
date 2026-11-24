@@ -1,0 +1,56 @@
+# Display groups / playlists.
+# Select a group via URL query param:
+#   /?group=<name>       in-page slideshow (YouTube, RSS cards, embeddable URLs)
+#   /next?group=<name>   persistent localStorage router (handles blocked-iframe redirects)
+#
+# Fields:
+#   description: human-readable label for /preview
+#   order: sequential | random (defaults to "sequential")
+#   sources: ordered list of source IDs from youtube.yaml, feeds.yaml, or urls.yaml
+
+web:
+  description: Web pages, blog cards, and interstitials (no video)
+  order: sequential
+  sources:
+    - web-pages
+    - chrome-blog
+    - interstitials
+
+web-live:
+  description: Web pages and live blog articles via top-level redirect (no video)
+  order: sequential
+  sources:
+    - web-pages
+    - chrome-blog-live
+    - interstitials
+
+quiet-cards:
+  description: Distraction-free RSS & blog summary cards with QR codes
+  order: sequential
+  sources:
+    - chrome-blog
+    - web-dev-blog
+    - chromium-blog
+    - interstitials
+
+videos:
+  description: Recent @ChromeDevs videos and curated talks
+  order: sequential
+  sources:
+    - chrome-devs-videos
+    - curated-videos
+
+shorts:
+  description: Recent @ChromeDevs Shorts
+  order: sequential
+  sources:
+    - chrome-devs-shorts
+
+all-media:
+  description: Full mix of videos, Shorts, and recent blog cards
+  order: random
+  sources:
+    - chrome-devs-videos
+    - chrome-devs-shorts
+    - curated-videos
+    - chrome-blog

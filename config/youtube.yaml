@@ -1,0 +1,30 @@
+# YouTube sources: recent channel videos, recent channel Shorts, and curated video lists.
+# Each top-level key is a source ID referenced from config/groups.yaml.
+#
+# Channel source fields:
+#   handle: "@ChannelHandle"  (or channelId: "UC...")
+#   kind: videos | shorts     (defaults to "videos")
+#   count: 5                  (max 15 from YouTube's public feed)
+#
+# Curated list fields:
+#   videos: list of video IDs, full YouTube URLs, or { id, title?, start?, end? }
+
+chrome-devs-videos:
+  handle: "@ChromeDevs"
+  kind: videos
+  count: 5
+
+chrome-devs-shorts:
+  handle: "@ChromeDevs"
+  kind: shorts
+  count: 5
+
+curated-videos:
+  videos:
+    - H2naJinRzDA
+    - lUHN48dhACY
+    - 2xdV-xut7EQ
+    - jaaSKZMnUW8
+    - id: 10oHjdwUIxo
+      end: 1287
+    - 3BmYR--3z8M

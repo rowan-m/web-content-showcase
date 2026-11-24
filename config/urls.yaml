@@ -1,0 +1,60 @@
+# Explicit web URL lists.
+# Each top-level key is a source ID referenced from config/groups.yaml.
+#
+# Entries can be a bare URL string or an object:
+#   url: https://...
+#   title: optional label shown in preview and status chrome
+#   duration: optional dwell time (e.g. "10s", "40s"); applies in-page
+#   display: auto | iframe | redirect (defaults to "auto")
+#     - auto:     uses iframe when the site allows embedding, redirect otherwise
+#     - iframe:   embeds inside the showcase player (CI fails if site blocks framing)
+#     - redirect: top-level navigation via /next
+
+web-pages:
+  - url: https://blog.google/
+    title: The Keyword
+  - url: https://blog.google/products/chromebooks/
+    title: The Keyword — Chromebooks
+  - url: https://blog.google/products/android/
+    title: The Keyword — Android
+  - url: https://blog.google/products/chrome/
+    title: The Keyword — Chrome
+  - url: https://blog.google/products/gemini/
+    title: The Keyword — Gemini
+  - url: https://developers.google.com/
+    title: Google for Developers
+    display: redirect
+  - url: https://web.dev/
+    title: web.dev
+    display: redirect
+  - url: https://web.dev/blog
+    title: web.dev Blog
+    display: redirect
+  - url: https://developer.chrome.com/
+    title: Chrome for Developers
+    display: redirect
+  - url: https://developer.chrome.com/blog
+    title: Chrome for Developers Blog
+    display: redirect
+  - url: https://chromestatus.com/roadmap
+    title: Chrome Platform Status Roadmap
+    display: redirect
+  - url: https://developer.chrome.com/release-notes
+    title: Chrome Release Notes
+    display: redirect
+  - url: https://blog.chromium.org/
+    title: Chromium Blog
+  - url: https://bsky.app/profile/developer.chrome.com
+    title: Chrome for Developers on Bluesky
+    display: redirect
+  - url: https://bsky.app/profile/developers.google.com
+    title: Google for Developers on Bluesky
+    display: redirect
+  - url: https://hn.algolia.com/?dateRange=pastWeek&page=0&prefix=false&query=chrome&sort=byPopularity&type=story
+    title: Hacker News — Chrome (Past Week)
+
+interstitials:
+  - url: https://rowan.fyi/made/atomatic/?e=chromium
+    title: Atomatic — Chromium
+    display: iframe
+    duration: 10s

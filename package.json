@@ -1,0 +1,31 @@
+{
+  "name": "web-content-showcase",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:manifest": "tsx scripts/build-manifest.ts",
+    "validate": "tsx scripts/validate-config.ts",
+    "validate:live": "tsx scripts/validate-config.ts --check-live",
+    "build": "npm run build:manifest && tsc --noEmit && vite build",
+    "build:site": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/qrcode": "^1.5.5",
+    "fast-xml-parser": "^5.0.8",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1",
+    "yaml": "^2.7.1",
+    "zod": "^4.6.7"
+  }
+}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Content Showcase</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230e1116'/%3E%3Cpolygon points='12,9 24,16 12,23' fill='%234b9eff'/%3E%3C/svg%3E" />
+  <meta name="description" content="Config-driven web content slideshow and video showcase for displays." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body class="kiosk-mode">
+  <main id="stage" aria-live="polite"></main>
+  <div id="progress-track" class="is-hidden"><div id="progress-fill"></div></div>
+  <aside id="hud" aria-label="Playback controls">
+    <strong id="hud-text">Loading…</strong>
+    <button id="hud-prev" type="button">Prev</button>
+    <button id="hud-pause" type="button">Pause</button>
+    <button id="hud-next" type="button">Next</button>
+    <a class="btn" style="padding:4px 10px;font-size:0.8rem" href="./preview/">Preview</a>
+  </aside>
+  <script type="module" src="/src/player.ts"></script>
+</body>
+</html>

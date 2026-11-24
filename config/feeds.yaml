@@ -1,0 +1,38 @@
+# RSS and Atom feed sources (blogs, release notes, news).
+# Each top-level key is a source ID referenced from config/groups.yaml.
+#
+# Fields:
+#   url: feed URL (RSS 2.0 or Atom)
+#   count: number of recent posts to include
+#   label: optional publication badge shown on card views
+#   display: card | redirect
+#     - card:     renders a 1080p summary slide (hero image, headline, excerpt, QR code)
+#     - redirect: opens the live article URL via /next (for sites that block iframes)
+#   duration: display time per item (applies to card mode)
+
+chrome-blog:
+  url: https://developer.chrome.com/static/blog/feed.xml
+  label: Chrome for Developers
+  count: 5
+  display: card
+  duration: 25s
+
+chrome-blog-live:
+  url: https://developer.chrome.com/static/blog/feed.xml
+  label: Chrome for Developers
+  count: 5
+  display: redirect
+
+web-dev-blog:
+  url: https://web.dev/static/blog/feed.xml
+  label: web.dev
+  count: 3
+  display: card
+  duration: 25s
+
+chromium-blog:
+  url: https://blog.chromium.org/feeds/posts/default
+  label: Chromium Blog
+  count: 3
+  display: card
+  duration: 25s
