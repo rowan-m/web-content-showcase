@@ -36,3 +36,68 @@ chromium-blog:
   count: 3
   display: card
   duration: 25s
+
+# Personal & community blogs
+
+paul-kinlan:
+  url: https://paul.kinlan.me/index.xml
+  label: paul.kinlan.me
+  count: 2
+  display: card
+  duration: 25s
+
+tomayac-blog:
+  url: https://blog.tomayac.com/feed/feed.xml
+  label: blog.tomayac.com
+  count: 2
+  display: card
+  duration: 25s
+
+rachel-andrew:
+  url: https://rachelandrew.co.uk/feed/
+  label: Rachel Andrew
+  count: 2
+  display: card
+  duration: 25s
+
+bandarra:
+  url: https://bandarra.me/feed/feed.xml
+  label: bandarra.me
+  count: 2
+  display: card
+  duration: 25s
+
+aifocus:
+  url: https://aifoc.us/index.xml
+  label: AI Focus
+  count: 2
+  display: card
+  duration: 25s
+
+bramus:
+  url: https://www.bram.us/feed/
+  label: Bram.us
+  count: 2
+  display: card
+  duration: 25s
+
+kulikowski:
+  url: https://kulikowski.me/feed.xml
+  label: kulikowski.me
+  count: 2
+  display: card
+  duration: 25s
+
+una-im:
+  url: https://una.im/rss.xml
+  label: Una Kravets
+  count: 2
+  display: card
+  duration: 25s
+
+rowan-fyi:
+  url: https://rowan.fyi/rss.xml
+  label: rowan.fyi
+  count: 2
+  display: card
+  duration: 25s

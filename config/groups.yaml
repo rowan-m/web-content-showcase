@@ -15,6 +15,15 @@ web:
   sources:
     - web-pages
     - chrome-blog
+    - paul-kinlan
+    - tomayac-blog
+    - rachel-andrew
+    - bandarra
+    - aifocus
+    - bramus
+    - kulikowski
+    - una-im
+    - rowan-fyi
     - interstitials
 
 web-live:
@@ -32,7 +41,30 @@ quiet-cards:
     - chrome-blog
     - web-dev-blog
     - chromium-blog
+    - paul-kinlan
+    - tomayac-blog
+    - rachel-andrew
+    - bandarra
+    - aifocus
+    - bramus
+    - kulikowski
+    - una-im
+    - rowan-fyi
     - interstitials
+
+blogs:
+  description: Personal & community web dev blog cards
+  order: sequential
+  sources:
+    - paul-kinlan
+    - tomayac-blog
+    - rachel-andrew
+    - bandarra
+    - aifocus
+    - bramus
+    - kulikowski
+    - una-im
+    - rowan-fyi
 
 videos:
   description: Recent @ChromeDevs videos and curated talks
@@ -57,5 +89,14 @@ all-media:
     - chrome-blog
     - web-dev-blog
     - chromium-blog
+    - paul-kinlan
+    - tomayac-blog
+    - rachel-andrew
+    - bandarra
+    - aifocus
+    - bramus
+    - kulikowski
+    - una-im
+    - rowan-fyi
     - web-pages
     - interstitials
