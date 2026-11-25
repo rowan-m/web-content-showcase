@@ -72,6 +72,23 @@ const CONFIG_SHORTCUTS: Array<{ file: string; label: string; desc: string }> = [
   { file: 'config/settings.yaml', label: 'settings.yaml', desc: 'Global timing & player defaults' },
 ];
 
+function createExternalIcon(): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '14');
+  svg.setAttribute('height', '14');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '1.75');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M5 11L11 5M6 5h5v5');
+  svg.appendChild(path);
+  return svg;
+}
+
 function renderContributeBar(repoUrl: string): HTMLElement {
   const section = document.createElement('section');
   section.className = 'contribute-bar';
@@ -86,7 +103,7 @@ function renderContributeBar(repoUrl: string): HTMLElement {
   repoLink.href = repoUrl;
   repoLink.target = '_blank';
   repoLink.rel = 'noopener noreferrer';
-  repoLink.textContent = 'Open repository on GitHub ↗';
+  repoLink.append('Open repository on GitHub', createExternalIcon());
   top.append(heading, repoLink);
   section.appendChild(top);
 
@@ -171,7 +188,7 @@ function renderGroup(
     editBtn.href = editGroupHref;
     editBtn.target = '_blank';
     editBtn.rel = 'noopener noreferrer';
-    editBtn.textContent = 'Edit group ↗';
+    editBtn.append('Edit group', createExternalIcon());
     editBtn.title = `Edit "${group.id}" in config/groups.yaml`;
     actions.appendChild(editBtn);
   }
