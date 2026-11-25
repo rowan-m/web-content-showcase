@@ -101,3 +101,10 @@ rowan-fyi:
   count: 2
   display: card
   duration: 25s
+
+eiji-kitamura:
+  url: https://blog.agektmr.com/en/feed.xml
+  label: Eiji Kitamura
+  count: 2
+  display: card
+  duration: 25s
