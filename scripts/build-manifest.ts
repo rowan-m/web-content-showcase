@@ -1,7 +1,8 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { ManifestGroup, ManifestItem, ShowcaseManifest, WebManifestItem } from '../src/types.js';
-import { loadConfig } from './lib/config.js';
+import { findTopLevelYamlKeyLines, loadConfig, normalizeGitHubRepoUrl } from './lib/config.js';
 import {
   buildCardItem,
   checkUrlEmbeddable,
@@ -41,9 +42,43 @@ function defaultTitleFromUrl(url: string): string {
   }
 }
 
+function detectRepoUrl(): string | undefined {
+  if (process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY) {
+    return `${process.env.GITHUB_SERVER_URL.replace(/\/$/, '')}/${process.env.GITHUB_REPOSITORY}`;
+  }
+  try {
+    const remote = execFileSync('git', ['remote', 'get-url', 'origin'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return normalizeGitHubRepoUrl(remote);
+  } catch {
+    return undefined;
+  }
+}
+
 async function main() {
-  const config = loadConfig();
+  const configDir = join(process.cwd(), 'config');
+  const config = loadConfig(configDir);
   const previous = loadPreviousManifest();
+  const repoUrl = detectRepoUrl();
+
+  const youtubeLines = findTopLevelYamlKeyLines(join(configDir, 'youtube.yaml'));
+  const feedLines = findTopLevelYamlKeyLines(join(configDir, 'feeds.yaml'));
+  const urlLines = findTopLevelYamlKeyLines(join(configDir, 'urls.yaml'));
+  const groupLines = findTopLevelYamlKeyLines(join(configDir, 'groups.yaml'));
+
+  const sourceLocations = new Map<string, { configFile: string; configLine?: number }>();
+  for (const id of Object.keys(config.youtube)) {
+    sourceLocations.set(id, { configFile: 'config/youtube.yaml', configLine: youtubeLines.get(id) });
+  }
+  for (const id of Object.keys(config.feeds)) {
+    sourceLocations.set(id, { configFile: 'config/feeds.yaml', configLine: feedLines.get(id) });
+  }
+  for (const id of Object.keys(config.urls)) {
+    sourceLocations.set(id, { configFile: 'config/urls.yaml', configLine: urlLines.get(id) });
+  }
+
   const resolvedSources = new Map<string, ManifestItem[]>();
   const channelIdCache = new Map<string, string>();
   const embedCache = new Map<string, { embeddable: boolean; reason?: string }>();
@@ -201,20 +236,26 @@ async function main() {
     const seenIds = new Set<string>();
     const items: ManifestItem[] = [];
     for (const sourceId of groupCfg.sources) {
+      const loc = sourceLocations.get(sourceId);
       for (const item of resolvedSources.get(sourceId) ?? []) {
         // Deduplicate YouTube videos that appear in both recent channel feed and curated list
         const dedupeKey = item.kind === 'youtube' ? `yt:${item.videoId}` : `${item.kind}:${item.url}`;
         if (seenIds.has(dedupeKey)) continue;
         seenIds.add(dedupeKey);
+        const withLoc: ManifestItem = {
+          ...item,
+          configFile: loc?.configFile,
+          configLine: loc?.configLine,
+        };
         if (
-          item.kind === 'youtube' &&
+          withLoc.kind === 'youtube' &&
           groupCfg.maxVideoDuration !== undefined &&
-          !itemHasExplicitMax.has(item.id) &&
+          !itemHasExplicitMax.has(withLoc.id) &&
           !sourceHasExplicitMax.has(sourceId)
         ) {
-          items.push({ ...item, maxDurationSeconds: groupCfg.maxVideoDuration });
+          items.push({ ...withLoc, maxDurationSeconds: groupCfg.maxVideoDuration });
         } else {
-          items.push(item);
+          items.push(withLoc);
         }
       }
     }
@@ -222,12 +263,15 @@ async function main() {
       id: groupId,
       description: groupCfg.description,
       order: groupCfg.order,
+      configFile: 'config/groups.yaml',
+      configLine: groupLines.get(groupId),
       items,
     };
   }
 
   const manifest: ShowcaseManifest = {
     generatedAt: new Date().toISOString(),
+    repoUrl,
     defaultGroup: config.settings.defaultGroup,
     defaultDurationSeconds: config.settings.duration,
     youtube: {

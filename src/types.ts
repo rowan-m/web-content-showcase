@@ -19,6 +19,8 @@ export interface YouTubeManifestItem {
   end?: number;
   maxDurationSeconds: number | null;
   sourceId: string;
+  configFile?: string;
+  configLine?: number;
 }
 
 export interface CardManifestItem {
@@ -33,6 +35,8 @@ export interface CardManifestItem {
   author?: string;
   durationSeconds: number;
   sourceId: string;
+  configFile?: string;
+  configLine?: number;
 }
 
 export interface WebManifestItem {
@@ -44,6 +48,8 @@ export interface WebManifestItem {
   durationSeconds: number;
   sourceId: string;
   embeddable?: boolean;
+  configFile?: string;
+  configLine?: number;
 }
 
 export type ManifestItem = YouTubeManifestItem | CardManifestItem | WebManifestItem;
@@ -52,11 +58,14 @@ export interface ManifestGroup {
   id: string;
   description: string;
   order: 'sequential' | 'random';
+  configFile?: string;
+  configLine?: number;
   items: ManifestItem[];
 }
 
 export interface ShowcaseManifest {
   generatedAt: string;
+  repoUrl?: string;
   defaultGroup: string;
   defaultDurationSeconds: number;
   youtube: YouTubeDefaults;

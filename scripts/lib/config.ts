@@ -195,6 +195,29 @@ export interface LoadedConfig {
   groups: Record<string, GroupConfig>;
 }
 
+export function findTopLevelYamlKeyLines(path: string): Map<string, number> {
+  const map = new Map<string, number>();
+  if (!existsSync(path)) return map;
+  const lines = readFileSync(path, 'utf8').split(/\r?\n/);
+  for (let i = 0; i < lines.length; i += 1) {
+    const match = /^([A-Za-z0-9._-]+)\s*:/.exec(lines[i]);
+    if (match) {
+      map.set(match[1], i + 1);
+    }
+  }
+  return map;
+}
+
+export function normalizeGitHubRepoUrl(remote: string): string | undefined {
+  const trimmed = remote.trim();
+  if (!trimmed) return undefined;
+  const sshMatch = /^git@github\.com:([^/]+\/[^/]+?)(?:\.git)?$/.exec(trimmed);
+  if (sshMatch) return `https://github.com/${sshMatch[1]}`;
+  const httpsMatch = /^https?:\/\/github\.com\/([^/]+\/[^/]+?)(?:\.git|\/)?$/.exec(trimmed);
+  if (httpsMatch) return `https://github.com/${httpsMatch[1]}`;
+  return undefined;
+}
+
 function readYamlFile(path: string, required: boolean): unknown {
   if (!existsSync(path)) {
     if (required) {

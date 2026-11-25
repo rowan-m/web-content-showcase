@@ -57,7 +57,69 @@ function buildPlaylistSnippet(baseUrl: string, group: ManifestGroup, defaultSeco
   return `${baseUrl}?group=${encodeURIComponent(group.id)}`;
 }
 
-function renderGroup(group: ManifestGroup, baseUrl: string, defaultSeconds: number): HTMLElement {
+function githubFileUrl(repoUrl: string | undefined, filePath: string | undefined, line?: number): string | null {
+  if (!repoUrl || !filePath) return null;
+  const cleanRepo = repoUrl.replace(/\/$/, '');
+  const cleanFile = filePath.replace(/^\//, '');
+  return `${cleanRepo}/blob/main/${cleanFile}${line ? `#L${line}` : ''}`;
+}
+
+const CONFIG_SHORTCUTS: Array<{ file: string; label: string; desc: string }> = [
+  { file: 'config/youtube.yaml', label: 'youtube.yaml', desc: 'YouTube channels, Shorts & curated videos' },
+  { file: 'config/feeds.yaml', label: 'feeds.yaml', desc: 'RSS / Atom blog feeds' },
+  { file: 'config/urls.yaml', label: 'urls.yaml', desc: 'Explicit web pages & interstitials' },
+  { file: 'config/groups.yaml', label: 'groups.yaml', desc: 'Display groups & playlists' },
+  { file: 'config/settings.yaml', label: 'settings.yaml', desc: 'Global timing & player defaults' },
+];
+
+function renderContributeBar(repoUrl: string): HTMLElement {
+  const section = document.createElement('section');
+  section.className = 'contribute-bar';
+  section.setAttribute('aria-label', 'Edit configuration files on GitHub');
+
+  const top = document.createElement('div');
+  top.className = 'contribute-head';
+  const heading = document.createElement('h2');
+  heading.textContent = 'Add or edit content via Pull Request';
+  const repoLink = document.createElement('a');
+  repoLink.className = 'btn';
+  repoLink.href = repoUrl;
+  repoLink.target = '_blank';
+  repoLink.rel = 'noopener noreferrer';
+  repoLink.textContent = 'Open repository on GitHub ↗';
+  top.append(heading, repoLink);
+  section.appendChild(top);
+
+  const list = document.createElement('div');
+  list.className = 'config-links';
+  for (const item of CONFIG_SHORTCUTS) {
+    const a = document.createElement('a');
+    a.className = 'config-link-card';
+    a.href = githubFileUrl(repoUrl, item.file) ?? repoUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+
+    const name = document.createElement('span');
+    name.className = 'config-link-name';
+    name.textContent = item.label;
+
+    const desc = document.createElement('span');
+    desc.className = 'config-link-desc';
+    desc.textContent = item.desc;
+
+    a.append(name, desc);
+    list.appendChild(a);
+  }
+  section.appendChild(list);
+  return section;
+}
+
+function renderGroup(
+  group: ManifestGroup,
+  baseUrl: string,
+  defaultSeconds: number,
+  repoUrl?: string,
+): HTMLElement {
   const card = document.createElement('section');
   card.className = 'group-card';
 
@@ -101,6 +163,18 @@ function renderGroup(group: ManifestGroup, baseUrl: string, defaultSeconds: numb
   nextBtn.href = `../next/?group=${encodeURIComponent(group.id)}&dry=1`;
   nextBtn.textContent = 'Test /next cursor';
   actions.appendChild(nextBtn);
+
+  const editGroupHref = githubFileUrl(repoUrl, group.configFile ?? 'config/groups.yaml', group.configLine);
+  if (editGroupHref) {
+    const editBtn = document.createElement('a');
+    editBtn.className = 'btn';
+    editBtn.href = editGroupHref;
+    editBtn.target = '_blank';
+    editBtn.rel = 'noopener noreferrer';
+    editBtn.textContent = 'Edit group ↗';
+    editBtn.title = `Edit "${group.id}" in config/groups.yaml`;
+    actions.appendChild(editBtn);
+  }
 
   head.append(left, actions);
   card.appendChild(head);
@@ -146,7 +220,19 @@ function renderGroup(group: ManifestGroup, baseUrl: string, defaultSeconds: numb
 
     const sourceTd = document.createElement('td');
     sourceTd.className = 'item-source';
-    sourceTd.textContent = item.sourceId;
+    const sourceHref = githubFileUrl(repoUrl, item.configFile, item.configLine);
+    if (sourceHref) {
+      const sourceLink = document.createElement('a');
+      sourceLink.className = 'source-edit-link';
+      sourceLink.href = sourceHref;
+      sourceLink.target = '_blank';
+      sourceLink.rel = 'noopener noreferrer';
+      sourceLink.textContent = item.sourceId;
+      sourceLink.title = `Edit "${item.sourceId}" in ${item.configFile}`;
+      sourceTd.appendChild(sourceLink);
+    } else {
+      sourceTd.textContent = item.sourceId;
+    }
 
     const durTd = document.createElement('td');
     durTd.className = 'item-source';
@@ -230,10 +316,14 @@ async function boot() {
   header.appendChild(titleBlock);
   page.appendChild(header);
 
+  if (manifest.repoUrl) {
+    page.appendChild(renderContributeBar(manifest.repoUrl));
+  }
+
   const grid = document.createElement('div');
   grid.className = 'group-grid';
   for (const group of Object.values(manifest.groups)) {
-    grid.appendChild(renderGroup(group, baseUrl, manifest.defaultDurationSeconds));
+    grid.appendChild(renderGroup(group, baseUrl, manifest.defaultDurationSeconds, manifest.repoUrl));
   }
   page.appendChild(grid);
 

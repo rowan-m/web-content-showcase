@@ -1,7 +1,10 @@
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   extractYouTubeId,
+  findTopLevelYamlKeyLines,
   loadConfig,
+  normalizeGitHubRepoUrl,
   parseDurationSeconds,
   parseOptionalMaxDuration,
 } from '../scripts/lib/config.js';
@@ -89,6 +92,24 @@ describe('parseOptionalMaxDuration', () => {
 
   it('rejects true', () => {
     expect(() => parseOptionalMaxDuration(true)).toThrow();
+  });
+});
+
+describe('normalizeGitHubRepoUrl & findTopLevelYamlKeyLines', () => {
+  it('normalizes SSH and HTTPS GitHub remotes', () => {
+    expect(normalizeGitHubRepoUrl('git@github.com:rowan-m/web-content-showcase.git')).toBe(
+      'https://github.com/rowan-m/web-content-showcase',
+    );
+    expect(normalizeGitHubRepoUrl('https://github.com/rowan-m/web-content-showcase.git')).toBe(
+      'https://github.com/rowan-m/web-content-showcase',
+    );
+    expect(normalizeGitHubRepoUrl('https://example.com/foo')).toBeUndefined();
+  });
+
+  it('finds 1-based line numbers for top-level YAML keys', () => {
+    const lines = findTopLevelYamlKeyLines(join(process.cwd(), 'config', 'groups.yaml'));
+    expect(lines.get('web')).toBeGreaterThan(1);
+    expect(lines.get('videos')).toBeGreaterThan(lines.get('web')!);
   });
 });
 
