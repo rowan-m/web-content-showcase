@@ -170,10 +170,22 @@ function upgradeThumbnailUrl(url: string | undefined): string | undefined {
   return url;
 }
 
-function extractImageFromHtml(html: string): string | undefined {
+function resolveHttpUrl(raw: string | undefined, baseUrl?: string): string {
+  const trimmed = raw?.trim() ?? '';
+  if (!trimmed) return '';
+  try {
+    const resolved = baseUrl ? new URL(trimmed, baseUrl) : new URL(trimmed);
+    return resolved.protocol === 'http:' || resolved.protocol === 'https:' ? resolved.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
+function extractImageFromHtml(html: string, baseUrl?: string): string | undefined {
   const imgMatch = /<img[^>]+src=["']([^"']+)["']/i.exec(html);
-  if (imgMatch && /^https?:\/\//i.test(imgMatch[1])) {
-    return upgradeThumbnailUrl(imgMatch[1]);
+  if (imgMatch) {
+    const resolved = resolveHttpUrl(imgMatch[1], baseUrl);
+    if (resolved) return upgradeThumbnailUrl(resolved);
   }
   return undefined;
 }
@@ -230,7 +242,7 @@ export interface ParsedFeedEntry {
   feedTitle?: string;
 }
 
-export function parseFeedXml(xml: string, limit: number): ParsedFeedEntry[] {
+export function parseFeedXml(xml: string, limit: number, baseUrl?: string): ParsedFeedEntry[] {
   const parsed = xmlParser.parse(xml) as Record<string, unknown>;
 
   // RSS 2.0
@@ -242,7 +254,7 @@ export function parseFeedXml(xml: string, limit: number): ParsedFeedEntry[] {
     return items
       .slice(0, limit)
       .map((item) => {
-        const url = extractText(item.link) || extractText(item.guid);
+        const url = resolveHttpUrl(extractText(item.link) || extractText(item.guid), baseUrl);
         const title = stripHtmlToExcerpt(extractText(item.title), 160) || url;
         const rawDesc = extractText(item['content:encoded']) || extractText(item.description);
         const summary = rawDesc ? stripHtmlToExcerpt(rawDesc) : undefined;
@@ -253,13 +265,16 @@ export function parseFeedXml(xml: string, limit: number): ParsedFeedEntry[] {
         const mediaThumb = asArray(
           item['media:thumbnail'] as Record<string, unknown> | Record<string, unknown>[] | undefined,
         )[0];
-        const image =
+        const itemBase = url || baseUrl;
+        const rawImage =
           (typeof mediaContent?.['@_url'] === 'string' ? mediaContent['@_url'] : undefined) ??
           (typeof mediaThumb?.['@_url'] === 'string' ? mediaThumb['@_url'] : undefined) ??
           (typeof enclosure?.['@_url'] === 'string' && String(enclosure['@_type'] ?? '').startsWith('image/')
             ? enclosure['@_url']
-            : undefined) ??
-          extractImageFromHtml(rawDesc);
+            : undefined);
+        const image =
+          (rawImage ? upgradeThumbnailUrl(resolveHttpUrl(rawImage, itemBase) || undefined) : undefined) ??
+          extractImageFromHtml(rawDesc, itemBase);
 
         const publishedAt = extractText(item.pubDate) || extractText(item['dc:date']) || undefined;
         const author = extractText(item['dc:creator']) || extractText(item.author) || undefined;
@@ -277,14 +292,16 @@ export function parseFeedXml(xml: string, limit: number): ParsedFeedEntry[] {
     return entries
       .slice(0, limit)
       .map((entry) => {
-        const url = resolveAtomLink(entry.link);
+        const url = resolveHttpUrl(resolveAtomLink(entry.link), baseUrl);
         const title = stripHtmlToExcerpt(extractText(entry.title), 160) || url;
         const rawDesc = extractText(entry.summary) || extractText(entry.content);
         const summary = rawDesc ? stripHtmlToExcerpt(rawDesc) : undefined;
         const mediaThumb = entry['media:thumbnail'] as Record<string, unknown> | undefined;
+        const itemBase = url || baseUrl;
+        const rawThumb = typeof mediaThumb?.['@_url'] === 'string' ? mediaThumb['@_url'] : undefined;
         const image =
-          extractImageFromHtml(rawDesc) ??
-          upgradeThumbnailUrl(typeof mediaThumb?.['@_url'] === 'string' ? mediaThumb['@_url'] : undefined);
+          extractImageFromHtml(rawDesc, itemBase) ??
+          upgradeThumbnailUrl(rawThumb ? resolveHttpUrl(rawThumb, itemBase) || undefined : undefined);
         const publishedAt = extractText(entry.published) || extractText(entry.updated) || undefined;
         const authorObj = entry.author as Record<string, unknown> | undefined;
         const author = authorObj ? extractText(authorObj.name) || undefined : undefined;
@@ -305,7 +322,7 @@ export async function fetchFeedEntries(
   if (status < 200 || status >= 300) {
     throw new Error(`Feed ${feedUrl} returned HTTP ${status}`);
   }
-  const entries = parseFeedXml(text, count);
+  const entries = parseFeedXml(text, count, feedUrl);
   if (enrichImages) {
     await Promise.all(
       entries.map(async (entry) => {

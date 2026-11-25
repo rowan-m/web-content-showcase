@@ -71,6 +71,23 @@ describe('parseFeedXml & stripHtmlToExcerpt', () => {
     expect(entries[0].summary).toBe('First paragraph here.');
   });
 
+  it('resolves root-relative Atom links and images against the feed URL', () => {
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+      <feed xmlns="http://www.w3.org/2005/Atom">
+        <title>Example Blog</title>
+        <entry>
+          <title type="html"><![CDATA[Relative Link Post]]></title>
+          <link rel="alternate" type="text/html" href="/en/2026/10/post.html" />
+          <published>2026-10-05T00:00:00Z</published>
+          <content type="html">&lt;p&gt;Hello world&lt;/p&gt;&lt;img src="/images/hero.png" /&gt;</content>
+        </entry>
+      </feed>`;
+    const entries = parseFeedXml(xml, 5, 'https://blog.example.com/en/feed.xml');
+    expect(entries).toHaveLength(1);
+    expect(entries[0].url).toBe('https://blog.example.com/en/2026/10/post.html');
+    expect(entries[0].image).toBe('https://blog.example.com/images/hero.png');
+  });
+
   it('truncates long excerpts on a word boundary', () => {
     const long = `<p>${'word '.repeat(80)}</p>`;
     const excerpt = stripHtmlToExcerpt(long, 50);
