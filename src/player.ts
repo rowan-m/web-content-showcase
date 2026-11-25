@@ -3,8 +3,11 @@ import {
   buildYouTubeEmbedUrl,
   isInPagePlayable,
   parseMaxVideoParam,
+  resetGroupCursor,
   resolveEffectiveYouTubePlayback,
   resolveGroup,
+  saveGroupCursor,
+  selectNextIndex,
   shuffleCopy,
 } from './router.js';
 import './styles.css';
@@ -192,6 +195,7 @@ class ShowcasePlayer {
   private items: ManifestItem[];
   private currentIndex = 0;
   private singleMode: boolean;
+  private persistCursorKey: string | null;
   private maxVideoOverride: number | null | undefined;
   private paused = false;
   private timerHandle: number | null = null;
@@ -212,6 +216,7 @@ class ShowcasePlayer {
     singleMode: boolean,
     showHud: boolean,
     maxVideoOverride?: number | null,
+    persistCursorKey: string | null = null,
   ) {
     this.manifest = manifest;
     this.groupId = groupId;
@@ -219,6 +224,7 @@ class ShowcasePlayer {
     this.currentIndex = Math.max(0, Math.min(startIndex, items.length - 1));
     this.singleMode = singleMode;
     this.maxVideoOverride = maxVideoOverride;
+    this.persistCursorKey = persistCursorKey;
 
     if (showHud) {
       this.hud.classList.add('is-visible');
@@ -339,6 +345,14 @@ class ShowcasePlayer {
     this.cleanupPlayer();
     const item = this.items[this.currentIndex];
     if (!item) return;
+
+    if (this.persistCursorKey) {
+      try {
+        saveGroupCursor(window.localStorage, this.persistCursorKey, this.currentIndex);
+      } catch {
+        // Ignore storage write errors in restricted browsing contexts.
+      }
+    }
 
     this.updateHud(item);
 
@@ -556,9 +570,34 @@ async function boot() {
   const effectiveOrder =
     orderOverride === 'random' || orderOverride === 'sequential' ? orderOverride : group.order;
   const queue = effectiveOrder === 'random' ? shuffleCopy(playable) : playable;
-  const startIndex = explicitIndex !== null ? Number.parseInt(explicitIndex, 10) || 0 : 0;
+  const shouldReset = params.get('reset') === '1';
 
-  const player = new ShowcasePlayer(manifest, group.id, queue, startIndex, false, showHud, maxVideoOverride);
+  let startIndex = 0;
+  let persistCursorKey: string | null = null;
+  if (explicitIndex !== null) {
+    startIndex = Number.parseInt(explicitIndex, 10) || 0;
+  } else if (effectiveOrder === 'sequential') {
+    persistCursorKey = `play:${group.id}`;
+    try {
+      if (shouldReset) {
+        resetGroupCursor(window.localStorage, persistCursorKey);
+      }
+      startIndex = selectNextIndex(window.localStorage, persistCursorKey, queue.length, 'sequential');
+    } catch {
+      startIndex = 0;
+    }
+  }
+
+  const player = new ShowcasePlayer(
+    manifest,
+    group.id,
+    queue,
+    startIndex,
+    false,
+    showHud,
+    maxVideoOverride,
+    persistCursorKey,
+  );
   player.start();
 }
 

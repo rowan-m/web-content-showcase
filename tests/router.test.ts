@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildYouTubeEmbedUrl,
   parseMaxVideoParam,
+  resetGroupCursor,
   resolveEffectiveYouTubePlayback,
+  saveGroupCursor,
   selectNextIndex,
   type StorageLike,
 } from '../src/router.js';
@@ -27,6 +29,18 @@ describe('selectNextIndex', () => {
     expect(selectNextIndex(storage, 'web', 3, 'sequential')).toBe(1);
     expect(selectNextIndex(storage, 'web', 3, 'sequential')).toBe(2);
     expect(selectNextIndex(storage, 'web', 3, 'sequential')).toBe(0);
+  });
+
+  it('resumes from the item after a saved in-page playback cursor and supports reset', () => {
+    const storage = createMemoryStorage();
+    expect(selectNextIndex(storage, 'play:videos', 5, 'sequential')).toBe(0);
+    // Simulate advancing internally to index 2 during a 10m block before another schedule interrupts.
+    saveGroupCursor(storage, 'play:videos', 2);
+    expect(selectNextIndex(storage, 'play:videos', 5, 'sequential')).toBe(3);
+    saveGroupCursor(storage, 'play:videos', 4);
+    expect(selectNextIndex(storage, 'play:videos', 5, 'sequential')).toBe(0);
+    resetGroupCursor(storage, 'play:videos');
+    expect(selectNextIndex(storage, 'play:videos', 5, 'sequential')).toBe(0);
   });
 
   it('never repeats the previous index in random mode', () => {

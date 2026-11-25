@@ -48,10 +48,14 @@ shorts:
     - chrome-devs-shorts
 
 all-media:
-  description: Full mix of videos, Shorts, and recent blog cards
+  description: Full mix of videos, Shorts, blog cards, web pages, and interstitials
   order: random
   sources:
     - chrome-devs-videos
     - chrome-devs-shorts
     - curated-videos
     - chrome-blog
+    - web-dev-blog
+    - chromium-blog
+    - web-pages
+    - interstitials

@@ -36,6 +36,12 @@ web-pages:
   - url: https://developer.chrome.com/blog
     title: Chrome for Developers Blog
     display: redirect
+  - url: https://developer.chrome.com/docs/extensions
+    title: Chrome Extensions Docs
+    display: redirect
+  - url: https://developer.chrome.com/docs/devtools
+    title: Chrome DevTools Docs
+    display: redirect
   - url: https://chromestatus.com/roadmap
     title: Chrome Platform Status Roadmap
     display: redirect

@@ -92,6 +92,10 @@ export function resetGroupCursor(storage: StorageLike, groupId: string): void {
   storage.removeItem(`showcase:idx:${groupId}`);
 }
 
+export function saveGroupCursor(storage: StorageLike, groupId: string, index: number): void {
+  storage.setItem(`showcase:idx:${groupId}`, String(index));
+}
+
 export function resolveGroup(manifest: ShowcaseManifest, requestedGroup: string | null): ManifestGroup {
   const id = requestedGroup && manifest.groups[requestedGroup] ? requestedGroup : manifest.defaultGroup;
   const group = manifest.groups[id];
