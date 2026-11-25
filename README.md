@@ -24,7 +24,7 @@ Each content type has its own file under `config/`:
 - **`config/youtube.yaml`** — Recent channel videos (`kind: videos`), recent Shorts (`kind: shorts`), and curated video lists (supports bare IDs, full URLs, or `{ id, start, end, maxDuration }`). Set `maxDuration: false` (or e.g. `10m`) per source or per video to override the global cap.
 - **`config/feeds.yaml`** — RSS 2.0 and Atom feeds. Set `display: card` for 1080p summary slides with QR codes, or `display: redirect` to open the live article URL via `/next/`.
 - **`config/urls.yaml`** — Explicit web URLs with optional `title`, `duration`, and `display: auto | iframe | redirect`.
-- **`config/groups.yaml`** — Named display playlists (for example, separating quiet text/web groups from video groups) with `order: sequential | random` and optional `maxVideoDuration` override.
+- **`config/groups.yaml`** — Named display playlists (for example, separating quiet text/web groups from video groups) with `order: sequential | random`, optional `maxVideoDuration` override, wildcards (`*`, `youtube:*`, `feeds:*`, `urls:*`), and `exclude` lists (accepting source IDs, wildcards, or other group names).
 
 Video length cap precedence (highest to lowest): `?maxVideo=` URL param (`10m`, `300s`, or `none`/`0` for full length) → per-video `maxDuration` → per-source `maxDuration` → per-group `maxVideoDuration` → `settings.yaml` `youtube.maxDuration` (`5m`).
 

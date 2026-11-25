@@ -178,6 +178,7 @@ const GroupSchema = z.object({
   order: z.enum(['sequential', 'random']).default('sequential'),
   maxVideoDuration: MaxDurationValueSchema.optional(),
   sources: z.array(z.string().min(1)).min(1),
+  exclude: z.array(z.string().min(1)).default([]),
 });
 const GroupsFileSchema = z.record(z.string().min(1), GroupSchema);
 
@@ -187,12 +188,93 @@ export type FeedSourceConfig = z.infer<typeof FeedSourceSchema>;
 export type UrlEntryConfig = z.infer<typeof UrlEntrySchema>;
 export type GroupConfig = z.infer<typeof GroupSchema>;
 
+export interface ResolvedGroupConfig extends GroupConfig {
+  resolvedSources: string[];
+}
+
+export interface SourcesByType {
+  youtube: readonly string[];
+  feeds: readonly string[];
+  urls: readonly string[];
+}
+
 export interface LoadedConfig {
   settings: SettingsConfig;
   youtube: Record<string, YouTubeSourceConfig>;
   feeds: Record<string, FeedSourceConfig>;
   urls: Record<string, UrlEntryConfig[]>;
-  groups: Record<string, GroupConfig>;
+  groups: Record<string, ResolvedGroupConfig>;
+}
+
+export function resolveGroupSources(
+  groups: Record<string, GroupConfig>,
+  sourcesByType: SourcesByType,
+): Record<string, string[]> {
+  const allSources = [...sourcesByType.youtube, ...sourcesByType.feeds, ...sourcesByType.urls];
+  const knownSources = new Set(allSources);
+  const memo = new Map<string, string[]>();
+
+  const expandRef = (
+    ref: string,
+    ownerGroupId: string,
+    field: 'sources' | 'exclude',
+    stack: string[],
+  ): string[] => {
+    if (ref === '*') return allSources;
+    if (ref === 'youtube:*') return [...sourcesByType.youtube];
+    if (ref === 'feeds:*') return [...sourcesByType.feeds];
+    if (ref === 'urls:*') return [...sourcesByType.urls];
+    if (knownSources.has(ref)) return [ref];
+    if (Object.prototype.hasOwnProperty.call(groups, ref)) {
+      return resolveOne(ref, stack);
+    }
+    throw new Error(
+      `Group "${ownerGroupId}" in config/groups.yaml references unknown source or group "${ref}" in ${field}`,
+    );
+  };
+
+  const resolveOne = (groupId: string, stack: string[]): string[] => {
+    const cached = memo.get(groupId);
+    if (cached) return cached;
+
+    if (stack.includes(groupId)) {
+      const cycle = [...stack.slice(stack.indexOf(groupId)), groupId].join(' -> ');
+      throw new Error(`Circular group reference in config/groups.yaml: ${cycle}`);
+    }
+
+    const nextStack = [...stack, groupId];
+    const group = groups[groupId];
+
+    const excluded = new Set<string>();
+    for (const ref of group.exclude) {
+      for (const id of expandRef(ref, groupId, 'exclude', nextStack)) {
+        excluded.add(id);
+      }
+    }
+
+    const resolved: string[] = [];
+    const seen = new Set<string>();
+    for (const ref of group.sources) {
+      for (const id of expandRef(ref, groupId, 'sources', nextStack)) {
+        if (excluded.has(id) || seen.has(id)) continue;
+        seen.add(id);
+        resolved.push(id);
+      }
+    }
+
+    if (resolved.length === 0) {
+      throw new Error(`Group "${groupId}" in config/groups.yaml resolves to 0 sources after exclusions`);
+    }
+
+    memo.set(groupId, resolved);
+    return resolved;
+  };
+
+  const result: Record<string, string[]> = {};
+  for (const groupId of Object.keys(groups)) {
+    result[groupId] = resolveOne(groupId, []);
+  }
+  return result;
 }
 
 export function findTopLevelYamlKeyLines(path: string): Map<string, number> {
@@ -273,19 +355,23 @@ export function loadConfig(configDir = join(process.cwd(), 'config')): LoadedCon
   for (const id of Object.keys(feedsRes.data)) registerSource(id, 'config/feeds.yaml');
   for (const id of Object.keys(urlsRes.data)) registerSource(id, 'config/urls.yaml');
 
-  const groups = groupsRes.data;
-  if (Object.keys(groups).length === 0) {
+  const rawGroups = groupsRes.data;
+  if (Object.keys(rawGroups).length === 0) {
     throw new Error('config/groups.yaml must define at least one group');
   }
 
-  for (const [groupId, group] of Object.entries(groups)) {
-    for (const sourceId of group.sources) {
-      if (!seenSources.has(sourceId)) {
-        throw new Error(
-          `Group "${groupId}" in config/groups.yaml references unknown source "${sourceId}"`,
-        );
-      }
-    }
+  const resolvedMap = resolveGroupSources(rawGroups, {
+    youtube: Object.keys(youtubeRes.data),
+    feeds: Object.keys(feedsRes.data),
+    urls: Object.keys(urlsRes.data),
+  });
+
+  const groups: Record<string, ResolvedGroupConfig> = {};
+  for (const [groupId, group] of Object.entries(rawGroups)) {
+    groups[groupId] = {
+      ...group,
+      resolvedSources: resolvedMap[groupId],
+    };
   }
 
   if (!groups[settingsRes.data.defaultGroup]) {

@@ -7,6 +7,7 @@ import {
   normalizeGitHubRepoUrl,
   parseDurationSeconds,
   parseOptionalMaxDuration,
+  resolveGroupSources,
 } from '../scripts/lib/config.js';
 import { evaluateEmbedHeaders, parseFeedXml, stripHtmlToExcerpt } from '../scripts/lib/fetchers.js';
 
@@ -113,6 +114,71 @@ describe('normalizeGitHubRepoUrl & findTopLevelYamlKeyLines', () => {
   });
 });
 
+describe('resolveGroupSources', () => {
+  const sourcesByType = {
+    youtube: ['yt-vids', 'yt-shorts', 'curated'],
+    feeds: ['blog-a', 'blog-a-live', 'blog-b'],
+    urls: ['pages', 'interstitials'],
+  };
+
+  it('expands wildcards and subtracts excluded groups and sources', () => {
+    const resolved = resolveGroupSources(
+      {
+        videos: { description: '', order: 'sequential', sources: ['yt-vids', 'curated'], exclude: [] },
+        shorts: { description: '', order: 'sequential', sources: ['yt-shorts'], exclude: [] },
+        web: {
+          description: '',
+          order: 'random',
+          sources: ['*'],
+          exclude: ['videos', 'shorts', 'blog-a-live'],
+        },
+        cards: {
+          description: '',
+          order: 'sequential',
+          sources: ['feeds:*'],
+          exclude: ['blog-a-live'],
+        },
+      },
+      sourcesByType,
+    );
+
+    expect(resolved.web).toEqual(['blog-a', 'blog-b', 'pages', 'interstitials']);
+    expect(resolved.cards).toEqual(['blog-a', 'blog-b']);
+  });
+
+  it('detects circular group references and unknown sources', () => {
+    expect(() =>
+      resolveGroupSources(
+        {
+          a: { description: '', order: 'sequential', sources: ['*'], exclude: ['b'] },
+          b: { description: '', order: 'sequential', sources: ['*'], exclude: ['a'] },
+        },
+        sourcesByType,
+      ),
+    ).toThrow(/Circular group reference/);
+
+    expect(() =>
+      resolveGroupSources(
+        {
+          bad: { description: '', order: 'sequential', sources: ['does-not-exist'], exclude: [] },
+        },
+        sourcesByType,
+      ),
+    ).toThrow(/unknown source or group/);
+  });
+
+  it('throws if exclusions empty a group', () => {
+    expect(() =>
+      resolveGroupSources(
+        {
+          empty: { description: '', order: 'sequential', sources: ['urls:*'], exclude: ['urls:*'] },
+        },
+        sourcesByType,
+      ),
+    ).toThrow(/resolves to 0 sources/);
+  });
+});
+
 describe('repository config', () => {
   it('loads and validates the checked-in config/ files cleanly', () => {
     const config = loadConfig();
@@ -121,5 +187,12 @@ describe('repository config', () => {
     expect(Object.keys(config.groups)).toContain('web');
     expect(Object.keys(config.groups)).toContain('videos');
     expect(Object.keys(config.groups)).toContain('shorts');
+    expect(config.groups.web.order).toBe('random');
+    expect(config.groups.web.resolvedSources).toContain('web-dev-blog');
+    expect(config.groups.web.resolvedSources).toContain('chromium-blog');
+    expect(config.groups.web.resolvedSources).not.toContain('chrome-devs-videos');
+    expect(config.groups.web.resolvedSources).not.toContain('chrome-devs-shorts');
+    expect(config.groups.web.resolvedSources).not.toContain('curated-videos');
+    expect(config.groups.web.resolvedSources).not.toContain('chrome-blog-live');
   });
 });

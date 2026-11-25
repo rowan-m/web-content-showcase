@@ -7,24 +7,18 @@
 #   description: human-readable label for /preview
 #   order: sequential | random (defaults to "sequential")
 #   maxVideoDuration: optional video cap override for this group (e.g. "10m" or false for full length)
-#   sources: ordered list of source IDs from youtube.yaml, feeds.yaml, or urls.yaml
+#   sources: list of source IDs, group names, or wildcards ('*', 'youtube:*', 'feeds:*', 'urls:*')
+#   exclude: optional list of source IDs, group names, or wildcards to subtract from sources
 
 web:
-  description: Web pages, blog cards, and interstitials (no video)
-  order: sequential
+  description: All non-video content (web pages, blog cards, and interstitials)
+  order: random
   sources:
-    - web-pages
-    - chrome-blog
-    - paul-kinlan
-    - tomayac-blog
-    - rachel-andrew
-    - bandarra
-    - aifocus
-    - bramus
-    - kulikowski
-    - una-im
-    - rowan-fyi
-    - interstitials
+    - '*'
+  exclude:
+    - videos
+    - shorts
+    - chrome-blog-live
 
 web-live:
   description: Web pages and live blog articles via top-level redirect (no video)
@@ -38,33 +32,21 @@ quiet-cards:
   description: Distraction-free RSS & blog summary cards with QR codes
   order: sequential
   sources:
-    - chrome-blog
-    - web-dev-blog
-    - chromium-blog
-    - paul-kinlan
-    - tomayac-blog
-    - rachel-andrew
-    - bandarra
-    - aifocus
-    - bramus
-    - kulikowski
-    - una-im
-    - rowan-fyi
+    - feeds:*
     - interstitials
+  exclude:
+    - chrome-blog-live
 
 blogs:
   description: Personal & community web dev blog cards
   order: sequential
   sources:
-    - paul-kinlan
-    - tomayac-blog
-    - rachel-andrew
-    - bandarra
-    - aifocus
-    - bramus
-    - kulikowski
-    - una-im
-    - rowan-fyi
+    - feeds:*
+  exclude:
+    - chrome-blog
+    - chrome-blog-live
+    - web-dev-blog
+    - chromium-blog
 
 videos:
   description: Recent @ChromeDevs videos and curated talks
@@ -83,20 +65,6 @@ all-media:
   description: Full mix of videos, Shorts, blog cards, web pages, and interstitials
   order: random
   sources:
-    - chrome-devs-videos
-    - chrome-devs-shorts
-    - curated-videos
-    - chrome-blog
-    - web-dev-blog
-    - chromium-blog
-    - paul-kinlan
-    - tomayac-blog
-    - rachel-andrew
-    - bandarra
-    - aifocus
-    - bramus
-    - kulikowski
-    - una-im
-    - rowan-fyi
-    - web-pages
-    - interstitials
+    - '*'
+  exclude:
+    - chrome-blog-live

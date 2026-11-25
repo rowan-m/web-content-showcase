@@ -235,7 +235,7 @@ async function main() {
   for (const [groupId, groupCfg] of Object.entries(config.groups)) {
     const seenIds = new Set<string>();
     const items: ManifestItem[] = [];
-    for (const sourceId of groupCfg.sources) {
+    for (const sourceId of groupCfg.resolvedSources) {
       const loc = sourceLocations.get(sourceId);
       for (const item of resolvedSources.get(sourceId) ?? []) {
         // Deduplicate YouTube videos that appear in both recent channel feed and curated list
