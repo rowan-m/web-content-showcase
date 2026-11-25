@@ -66,6 +66,7 @@ export async function fetchYouTubeChannelItems(
   channelId: string,
   kind: 'videos' | 'shorts',
   count: number,
+  maxDurationSeconds: number | null,
 ): Promise<YouTubeManifestItem[]> {
   const playlistPrefix = kind === 'shorts' ? 'UUSH' : 'UULF';
   const playlistId = `${playlistPrefix}${channelId.slice(2)}`;
@@ -109,6 +110,7 @@ export async function fetchYouTubeChannelItems(
       channel: author || undefined,
       publishedAt,
       thumbnail,
+      maxDurationSeconds,
       sourceId,
     };
   });

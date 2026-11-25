@@ -9,3 +9,6 @@ youtube:
   captions: true
   captionLang: en
   controls: false
+  # Maximum playback time per video before advancing ("5m", "300s", or false/none for full length).
+  # Can be overridden per source or per video in config/youtube.yaml, or via ?maxVideo=... in the URL.
+  maxDuration: 5m

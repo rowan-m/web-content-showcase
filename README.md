@@ -20,11 +20,13 @@ Keyboard shortcuts on `/`: `→` / `Space` (next), `←` (previous), `P` (pause/
 
 Each content type has its own file under `config/`:
 
-- **`config/settings.yaml`** — Default dwell time (`40s`), default group, and YouTube player options (`mute`, `captions`, `captionLang`, `controls`).
-- **`config/youtube.yaml`** — Recent channel videos (`kind: videos`), recent Shorts (`kind: shorts`), and curated video lists (supports bare IDs, full URLs, or `{ id, start, end }`).
+- **`config/settings.yaml`** — Default dwell time (`40s`), default group, and YouTube player options (`mute`, `captions`, `captionLang`, `controls`, `maxDuration: 5m`).
+- **`config/youtube.yaml`** — Recent channel videos (`kind: videos`), recent Shorts (`kind: shorts`), and curated video lists (supports bare IDs, full URLs, or `{ id, start, end, maxDuration }`). Set `maxDuration: false` (or e.g. `10m`) per source or per video to override the global cap.
 - **`config/feeds.yaml`** — RSS 2.0 and Atom feeds. Set `display: card` for 1080p summary slides with QR codes, or `display: redirect` to open the live article URL via `/next/`.
 - **`config/urls.yaml`** — Explicit web URLs with optional `title`, `duration`, and `display: auto | iframe | redirect`.
-- **`config/groups.yaml`** — Named display playlists (for example, separating quiet text/web groups from video groups) with `order: sequential | random`.
+- **`config/groups.yaml`** — Named display playlists (for example, separating quiet text/web groups from video groups) with `order: sequential | random` and optional `maxVideoDuration` override.
+
+Video length cap precedence (highest to lowest): `?maxVideo=` URL param (`10m`, `300s`, or `none`/`0` for full length) → per-video `maxDuration` → per-source `maxDuration` → per-group `maxVideoDuration` → `settings.yaml` `youtube.maxDuration` (`5m`).
 
 Every PR runs schema validation, unit tests, live YouTube/feed checks, and an `X-Frame-Options` / CSP `frame-ancestors` check that catches URLs explicitly marked `display: iframe` when the target blocks framing.
 

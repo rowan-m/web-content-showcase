@@ -1,4 +1,51 @@
-import type { ManifestGroup, ManifestItem, ShowcaseManifest } from './types.js';
+import type { ManifestGroup, ManifestItem, ShowcaseManifest, YouTubeManifestItem } from './types.js';
+
+export function parseMaxVideoParam(raw: string | null): number | null | undefined {
+  if (raw === null) return undefined;
+  const normalized = raw.trim().toLowerCase();
+  if (!normalized) return undefined;
+  if (normalized === '0' || normalized === '0s' || normalized === 'none' || normalized === 'unlimited' || normalized === 'false') {
+    return null;
+  }
+  const match = /^(\d+)(s|m|h)?$/.exec(normalized);
+  if (!match) return undefined;
+  const amount = Number.parseInt(match[1], 10);
+  if (!Number.isFinite(amount) || amount < 1) return undefined;
+  switch (match[2]) {
+    case 'm':
+      return amount * 60;
+    case 'h':
+      return amount * 3600;
+    default:
+      return amount;
+  }
+}
+
+export interface EffectiveYouTubePlayback {
+  start: number;
+  end: number | undefined;
+  maxDurationSeconds: number | null;
+  fallbackLimitSeconds: number | null;
+}
+
+export function resolveEffectiveYouTubePlayback(
+  item: Pick<YouTubeManifestItem, 'start' | 'end' | 'maxDurationSeconds'>,
+  urlMaxOverride?: number | null,
+): EffectiveYouTubePlayback {
+  const start = item.start ?? 0;
+  const maxDurationSeconds = urlMaxOverride !== undefined ? urlMaxOverride : item.maxDurationSeconds;
+  const capEnd = maxDurationSeconds !== null ? start + maxDurationSeconds : undefined;
+
+  let end: number | undefined;
+  if (item.end !== undefined && capEnd !== undefined) {
+    end = Math.min(item.end, capEnd);
+  } else {
+    end = item.end ?? capEnd;
+  }
+
+  const fallbackLimitSeconds = end !== undefined ? Math.max(1, end - start) : null;
+  return { start, end, maxDurationSeconds, fallbackLimitSeconds };
+}
 
 export interface StorageLike {
   getItem(key: string): string | null;

@@ -62,7 +62,33 @@ export function extractYouTubeId(input: string): string {
   throw new Error(`Could not extract an 11-character YouTube video ID from "${input}"`);
 }
 
+export function parseOptionalMaxDuration(value: string | number | boolean | null): number | null {
+  if (value === null || value === false || value === 0) {
+    return null;
+  }
+  if (typeof value === 'boolean') {
+    throw new Error('Invalid maxDuration: true (expected a duration like "5m", or false/none to disable)');
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'none' || normalized === 'unlimited' || normalized === 'false' || normalized === '0' || normalized === '0s') {
+      return null;
+    }
+  }
+  return parseDurationSeconds(value);
+}
+
 const DurationSchema = z.union([z.number().int().positive(), z.string().regex(DURATION_RE)]).transform(parseDurationSeconds);
+
+const MaxDurationValueSchema = z
+  .union([
+    z.null(),
+    z.literal(false),
+    z.literal(0),
+    z.number().int().positive(),
+    z.string().regex(/^(\d+(s|m|h)|0s?|none|unlimited|false)$/i),
+  ])
+  .transform(parseOptionalMaxDuration);
 
 const HttpUrlSchema = z.string().url().refine(
   (u) => u.startsWith('https://') || u.startsWith('http://'),
@@ -77,7 +103,8 @@ const SettingsSchema = z.object({
     captions: z.boolean().default(true),
     captionLang: z.string().min(2).default('en'),
     controls: z.boolean().default(false),
-  }).default({ mute: true, captions: true, captionLang: 'en', controls: false }),
+    maxDuration: MaxDurationValueSchema.default(300),
+  }).default({ mute: true, captions: true, captionLang: 'en', controls: false, maxDuration: 300 }),
 });
 
 const YouTubeVideoEntrySchema = z.union([
@@ -87,6 +114,7 @@ const YouTubeVideoEntrySchema = z.union([
     start: undefined as number | undefined,
     end: undefined as number | undefined,
     isShort: undefined as boolean | undefined,
+    maxDuration: undefined as number | null | undefined,
   })),
   z.object({
     id: z.string().min(1).transform(extractYouTubeId),
@@ -94,6 +122,7 @@ const YouTubeVideoEntrySchema = z.union([
     start: z.number().int().nonnegative().optional(),
     end: z.number().int().positive().optional(),
     isShort: z.boolean().optional(),
+    maxDuration: MaxDurationValueSchema.optional(),
   }).refine(
     (entry) => entry.start === undefined || entry.end === undefined || entry.end > entry.start,
     'Video end time must be greater than start time',
@@ -105,12 +134,14 @@ const YouTubeChannelSourceSchema = z.object({
   channelId: z.string().regex(/^UC[A-Za-z0-9_-]+$/).optional(),
   kind: z.enum(['videos', 'shorts']).default('videos'),
   count: z.number().int().min(1).max(15).default(5),
+  maxDuration: MaxDurationValueSchema.optional(),
 }).refine(
   (src) => Boolean(src.handle || src.channelId),
   'YouTube channel source must specify either handle or channelId',
 );
 
 const YouTubeListSourceSchema = z.object({
+  maxDuration: MaxDurationValueSchema.optional(),
   videos: z.array(YouTubeVideoEntrySchema).min(1),
 });
 
@@ -145,6 +176,7 @@ const UrlsFileSchema = z.record(z.string().min(1), z.array(UrlEntrySchema).min(1
 const GroupSchema = z.object({
   description: z.string().default(''),
   order: z.enum(['sequential', 'random']).default('sequential'),
+  maxVideoDuration: MaxDurationValueSchema.optional(),
   sources: z.array(z.string().min(1)).min(1),
 });
 const GroupsFileSchema = z.record(z.string().min(1), GroupSchema);

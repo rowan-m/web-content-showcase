@@ -38,7 +38,7 @@ async function main() {
     } else {
       try {
         const cid = await resolveYouTubeChannelId(src.channelId ?? src.handle!);
-        const items = await fetchYouTubeChannelItems(sourceId, cid, src.kind, 1);
+        const items = await fetchYouTubeChannelItems(sourceId, cid, src.kind, 1, null);
         if (items.length === 0) {
           console.warn(`[youtube:${sourceId}] warning: feed currently returned 0 ${src.kind}`);
         }

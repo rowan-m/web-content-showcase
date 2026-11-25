@@ -13,12 +13,26 @@ function tagForItem(item: ManifestItem): { label: string; cls: string } {
     : { label: 'Redirect', cls: 'tag-redirect' };
 }
 
+function formatSecondsShort(seconds: number): string {
+  if (seconds >= 3600 && seconds % 3600 === 0) return `${seconds / 3600}h`;
+  if (seconds >= 60 && seconds % 60 === 0) return `${seconds / 60}m`;
+  return `${seconds}s`;
+}
+
 function durationForItem(item: ManifestItem): string {
   if (item.kind === 'youtube') {
+    const start = item.start ?? 0;
+    const capEnd = item.maxDurationSeconds !== null ? start + item.maxDurationSeconds : undefined;
+    const effectiveEnd =
+      item.end !== undefined && capEnd !== undefined ? Math.min(item.end, capEnd) : (item.end ?? capEnd);
+
     if (item.start || item.end) {
-      return `${item.start ?? 0}s–${item.end ? `${item.end}s` : 'end'}`;
+      return `${start}s–${effectiveEnd !== undefined ? `${effectiveEnd}s` : 'end'}`;
     }
-    return 'auto (full)';
+    if (item.maxDurationSeconds !== null) {
+      return `max ${formatSecondsShort(item.maxDurationSeconds)}`;
+    }
+    return 'full video';
   }
   return `${item.durationSeconds}s`;
 }
@@ -207,7 +221,11 @@ async function boot() {
   h1.textContent = 'Web Content Showcase';
   const meta = document.createElement('div');
   meta.className = 'preview-meta';
-  meta.textContent = `Built ${new Date(manifest.generatedAt).toLocaleString()} · default duration ${manifest.defaultDurationSeconds}s · captions ${manifest.youtube.captions ? manifest.youtube.captionLang : 'off'}`;
+  const maxVideoLabel =
+    manifest.youtube.maxDurationSeconds !== null
+      ? `max video ${formatSecondsShort(manifest.youtube.maxDurationSeconds)}`
+      : 'max video unlimited';
+  meta.textContent = `Built ${new Date(manifest.generatedAt).toLocaleString()} · default duration ${manifest.defaultDurationSeconds}s · ${maxVideoLabel} · captions ${manifest.youtube.captions ? manifest.youtube.captionLang : 'off'}`;
   titleBlock.append(h1, meta);
   header.appendChild(titleBlock);
   page.appendChild(header);

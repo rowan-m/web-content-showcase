@@ -62,6 +62,10 @@ async function boot() {
   playerUrl.searchParams.set('group', group.id);
   playerUrl.searchParams.set('index', String(nextIndex));
   playerUrl.searchParams.set('single', '1');
+  const maxVideo = params.get('maxVideo');
+  if (maxVideo) {
+    playerUrl.searchParams.set('maxVideo', maxVideo);
+  }
 
   const targetUrl = item.kind === 'web' && item.display === 'redirect' ? item.url : playerUrl.toString();
 

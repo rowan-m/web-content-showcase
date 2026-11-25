@@ -6,6 +6,7 @@
 # Fields:
 #   description: human-readable label for /preview
 #   order: sequential | random (defaults to "sequential")
+#   maxVideoDuration: optional video cap override for this group (e.g. "10m" or false for full length)
 #   sources: ordered list of source IDs from youtube.yaml, feeds.yaml, or urls.yaml
 
 web:

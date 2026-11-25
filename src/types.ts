@@ -3,6 +3,7 @@ export interface YouTubeDefaults {
   captions: boolean;
   captionLang: string;
   controls: boolean;
+  maxDurationSeconds: number | null;
 }
 
 export interface YouTubeManifestItem {
@@ -16,6 +17,7 @@ export interface YouTubeManifestItem {
   thumbnail?: string;
   start?: number;
   end?: number;
+  maxDurationSeconds: number | null;
   sourceId: string;
 }
 

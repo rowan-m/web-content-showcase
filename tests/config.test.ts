@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { extractYouTubeId, loadConfig, parseDurationSeconds } from '../scripts/lib/config.js';
+import {
+  extractYouTubeId,
+  loadConfig,
+  parseDurationSeconds,
+  parseOptionalMaxDuration,
+} from '../scripts/lib/config.js';
 import { evaluateEmbedHeaders, parseFeedXml, stripHtmlToExcerpt } from '../scripts/lib/fetchers.js';
 
 describe('parseDurationSeconds', () => {
@@ -70,10 +75,28 @@ describe('parseFeedXml & stripHtmlToExcerpt', () => {
   });
 });
 
+describe('parseOptionalMaxDuration', () => {
+  it('parses duration caps and disable values', () => {
+    expect(parseOptionalMaxDuration('5m')).toBe(300);
+    expect(parseOptionalMaxDuration('90s')).toBe(90);
+    expect(parseOptionalMaxDuration(600)).toBe(600);
+    expect(parseOptionalMaxDuration(false)).toBeNull();
+    expect(parseOptionalMaxDuration(null)).toBeNull();
+    expect(parseOptionalMaxDuration(0)).toBeNull();
+    expect(parseOptionalMaxDuration('none')).toBeNull();
+    expect(parseOptionalMaxDuration('unlimited')).toBeNull();
+  });
+
+  it('rejects true', () => {
+    expect(() => parseOptionalMaxDuration(true)).toThrow();
+  });
+});
+
 describe('repository config', () => {
   it('loads and validates the checked-in config/ files cleanly', () => {
     const config = loadConfig();
     expect(config.settings.duration).toBe(40);
+    expect(config.settings.youtube.maxDuration).toBe(300);
     expect(Object.keys(config.groups)).toContain('web');
     expect(Object.keys(config.groups)).toContain('videos');
     expect(Object.keys(config.groups)).toContain('shorts');

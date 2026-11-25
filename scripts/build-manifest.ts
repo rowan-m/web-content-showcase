@@ -57,16 +57,27 @@ async function main() {
   };
 
   // 1. Resolve YouTube sources
+  // Store explicit source/entry override separately (undefined = inherit group/global default).
+  const sourceHasExplicitMax = new Map<string, boolean>();
+  const itemHasExplicitMax = new Map<string, boolean>();
+
   for (const [sourceId, src] of Object.entries(config.youtube)) {
+    const sourceMax = src.maxDuration;
+    if (sourceMax !== undefined) sourceHasExplicitMax.set(sourceId, true);
+    const defaultForSource = sourceMax !== undefined ? sourceMax : config.settings.youtube.maxDuration;
+
     try {
       if ('videos' in src) {
         const items: ManifestItem[] = await Promise.all(
           src.videos.map(async (entry) => {
+            const itemId = `${sourceId}:${entry.id}`;
+            if (entry.maxDuration !== undefined) itemHasExplicitMax.set(itemId, true);
+            const resolvedMax = entry.maxDuration !== undefined ? entry.maxDuration : defaultForSource;
             try {
               const info = await fetchYouTubeOEmbed(entry.id);
               return {
                 kind: 'youtube' as const,
-                id: `${sourceId}:${entry.id}`,
+                id: itemId,
                 videoId: entry.id,
                 isShort: Boolean(entry.isShort),
                 title: entry.title ?? info.title,
@@ -74,19 +85,21 @@ async function main() {
                 thumbnail: info.thumbnail,
                 start: entry.start,
                 end: entry.end,
+                maxDurationSeconds: resolvedMax,
                 sourceId,
               };
             } catch (err) {
               console.warn(`[youtube:${sourceId}] oEmbed lookup failed for ${entry.id}: ${String(err)}`);
               return {
                 kind: 'youtube' as const,
-                id: `${sourceId}:${entry.id}`,
+                id: itemId,
                 videoId: entry.id,
                 isShort: Boolean(entry.isShort),
                 title: entry.title ?? entry.id,
                 thumbnail: `https://i.ytimg.com/vi/${entry.id}/hqdefault.jpg`,
                 start: entry.start,
                 end: entry.end,
+                maxDurationSeconds: resolvedMax,
                 sourceId,
               };
             }
@@ -101,7 +114,7 @@ async function main() {
           channelId = await resolveYouTubeChannelId(lookupKey);
           channelIdCache.set(lookupKey, channelId);
         }
-        const items = await fetchYouTubeChannelItems(sourceId, channelId, src.kind, src.count);
+        const items = await fetchYouTubeChannelItems(sourceId, channelId, src.kind, src.count, defaultForSource);
         resolvedSources.set(sourceId, items);
         console.log(`[youtube:${sourceId}] resolved ${items.length} ${src.kind} from ${lookupKey}`);
       }
@@ -193,7 +206,16 @@ async function main() {
         const dedupeKey = item.kind === 'youtube' ? `yt:${item.videoId}` : `${item.kind}:${item.url}`;
         if (seenIds.has(dedupeKey)) continue;
         seenIds.add(dedupeKey);
-        items.push(item);
+        if (
+          item.kind === 'youtube' &&
+          groupCfg.maxVideoDuration !== undefined &&
+          !itemHasExplicitMax.has(item.id) &&
+          !sourceHasExplicitMax.has(sourceId)
+        ) {
+          items.push({ ...item, maxDurationSeconds: groupCfg.maxVideoDuration });
+        } else {
+          items.push(item);
+        }
       }
     }
     groups[groupId] = {
@@ -208,7 +230,13 @@ async function main() {
     generatedAt: new Date().toISOString(),
     defaultGroup: config.settings.defaultGroup,
     defaultDurationSeconds: config.settings.duration,
-    youtube: config.settings.youtube,
+    youtube: {
+      mute: config.settings.youtube.mute,
+      captions: config.settings.youtube.captions,
+      captionLang: config.settings.youtube.captionLang,
+      controls: config.settings.youtube.controls,
+      maxDurationSeconds: config.settings.youtube.maxDuration,
+    },
     groups,
   };
 

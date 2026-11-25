@@ -1,5 +1,12 @@
 import QRCode from 'qrcode';
-import { buildYouTubeEmbedUrl, isInPagePlayable, resolveGroup, shuffleCopy } from './router.js';
+import {
+  buildYouTubeEmbedUrl,
+  isInPagePlayable,
+  parseMaxVideoParam,
+  resolveEffectiveYouTubePlayback,
+  resolveGroup,
+  shuffleCopy,
+} from './router.js';
 import './styles.css';
 import type { CardManifestItem, ManifestItem, ShowcaseManifest, YouTubeManifestItem } from './types.js';
 
@@ -185,6 +192,7 @@ class ShowcasePlayer {
   private items: ManifestItem[];
   private currentIndex = 0;
   private singleMode: boolean;
+  private maxVideoOverride: number | null | undefined;
   private paused = false;
   private timerHandle: number | null = null;
   private progressAnim: Animation | null = null;
@@ -203,12 +211,14 @@ class ShowcasePlayer {
     startIndex: number,
     singleMode: boolean,
     showHud: boolean,
+    maxVideoOverride?: number | null,
   ) {
     this.manifest = manifest;
     this.groupId = groupId;
     this.items = items;
     this.currentIndex = Math.max(0, Math.min(startIndex, items.length - 1));
     this.singleMode = singleMode;
+    this.maxVideoOverride = maxVideoOverride;
 
     if (showHud) {
       this.hud.classList.add('is-visible');
@@ -364,14 +374,15 @@ class ShowcasePlayer {
 
   private buildYouTubeSlide(item: YouTubeManifestItem): HTMLElement {
     const loopSingle = this.singleMode || this.items.length === 1;
+    const playback = resolveEffectiveYouTubePlayback(item, this.maxVideoOverride);
     const src = buildYouTubeEmbedUrl(item.videoId, {
       mute: this.manifest.youtube.mute,
       captions: this.manifest.youtube.captions,
       captionLang: this.manifest.youtube.captionLang,
       controls: this.manifest.youtube.controls,
       loopSingle,
-      start: item.start,
-      end: item.end,
+      start: playback.start > 0 ? playback.start : undefined,
+      end: playback.end,
       origin: window.location.origin,
       enableJsApi: true,
     });
@@ -423,10 +434,12 @@ class ShowcasePlayer {
     const iframe = slide.querySelector<HTMLIFrameElement>('#yt-player');
     if (!iframe) return;
 
+    const playback = resolveEffectiveYouTubePlayback(item, this.maxVideoOverride);
+
     const advanceNow = () => {
       if (this.singleMode || this.items.length <= 1) {
         if (this.activeYtPlayer) {
-          this.activeYtPlayer.seekTo(item.start ?? 0, true);
+          this.activeYtPlayer.seekTo(playback.start, true);
           this.activeYtPlayer.playVideo();
         }
         return;
@@ -437,6 +450,22 @@ class ShowcasePlayer {
       }
     };
 
+    const armFallbackTimer = (extraBufferSeconds: number) => {
+      if (this.singleMode || this.items.length <= 1 || playback.fallbackLimitSeconds === null || this.paused) {
+        return;
+      }
+      if (this.timerHandle !== null) {
+        window.clearTimeout(this.timerHandle);
+      }
+      this.timerHandle = window.setTimeout(
+        advanceNow,
+        (playback.fallbackLimitSeconds + extraBufferSeconds) * 1000,
+      );
+    };
+
+    // Fallback safety timer in case the IFrame API fails to load or ENDED doesn't fire.
+    armFallbackTimer(10);
+
     void loadYouTubeApi()
       .then((YT) => {
         if (!document.body.contains(iframe)) return;
@@ -446,13 +475,16 @@ class ShowcasePlayer {
               ev.target.playVideo();
             },
             onStateChange: (ev) => {
-              if (ev.data === YT.PlayerState.ENDED) {
+              if (ev.data === YT.PlayerState.PLAYING) {
+                armFallbackTimer(5);
+              } else if (ev.data === YT.PlayerState.ENDED) {
                 advanceNow();
               }
             },
             onError: () => {
               // Skip broken or restricted videos rather than stalling the display.
               if (!this.singleMode && this.items.length > 1) {
+                if (this.timerHandle !== null) window.clearTimeout(this.timerHandle);
                 this.timerHandle = window.setTimeout(advanceNow, 3000);
               }
             },
@@ -460,7 +492,7 @@ class ShowcasePlayer {
         });
       })
       .catch(() => {
-        // Iframe still plays via URL query parameters if the IFrame API script is blocked.
+        // Iframe still plays via URL query parameters; fallback timer handles advancing.
       });
   }
 }
@@ -472,6 +504,7 @@ async function boot() {
   const showHud = params.get('hud') === '1';
   const orderOverride = params.get('order');
   const explicitIndex = params.get('index');
+  const maxVideoOverride = parseMaxVideoParam(params.get('maxVideo'));
 
   let manifest: ShowcaseManifest;
   try {
@@ -504,7 +537,7 @@ async function boot() {
       window.location.replace(item.url);
       return;
     }
-    const player = new ShowcasePlayer(manifest, group.id, [item], 0, true, showHud);
+    const player = new ShowcasePlayer(manifest, group.id, [item], 0, true, showHud, maxVideoOverride);
     player.start();
     return;
   }
@@ -525,7 +558,7 @@ async function boot() {
   const queue = effectiveOrder === 'random' ? shuffleCopy(playable) : playable;
   const startIndex = explicitIndex !== null ? Number.parseInt(explicitIndex, 10) || 0 : 0;
 
-  const player = new ShowcasePlayer(manifest, group.id, queue, startIndex, false, showHud);
+  const player = new ShowcasePlayer(manifest, group.id, queue, startIndex, false, showHud, maxVideoOverride);
   player.start();
 }
 

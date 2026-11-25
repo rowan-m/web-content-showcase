@@ -2,12 +2,14 @@
 # Each top-level key is a source ID referenced from config/groups.yaml.
 #
 # Channel source fields:
-#   handle: "@ChannelHandle"  (or channelId: "UC...")
-#   kind: videos | shorts     (defaults to "videos")
-#   count: 5                  (max 15 from YouTube's public feed)
+#   handle: "@ChannelHandle"      (or channelId: "UC...")
+#   kind: videos | shorts         (defaults to "videos")
+#   count: 5                      (max 15 from YouTube's public feed)
+#   maxDuration: 10m | false      (optional override of settings.yaml youtube.maxDuration)
 #
 # Curated list fields:
-#   videos: list of video IDs, full YouTube URLs, or { id, title?, start?, end? }
+#   maxDuration: 10m | false      (optional override for all videos in this list)
+#   videos: list of video IDs, full YouTube URLs, or { id, title?, start?, end?, maxDuration? }
 
 chrome-devs-videos:
   handle: "@ChromeDevs"

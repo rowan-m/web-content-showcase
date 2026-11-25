@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildYouTubeEmbedUrl, selectNextIndex, type StorageLike } from '../src/router.js';
+import {
+  buildYouTubeEmbedUrl,
+  parseMaxVideoParam,
+  resolveEffectiveYouTubePlayback,
+  selectNextIndex,
+  type StorageLike,
+} from '../src/router.js';
 
 function createMemoryStorage(): StorageLike {
   const store = new Map<string, string>();
@@ -59,5 +65,59 @@ describe('buildYouTubeEmbedUrl', () => {
     expect(url.searchParams.get('end')).toBe('1287');
     expect(url.searchParams.get('rel')).toBe('0');
     expect(url.searchParams.get('enablejsapi')).toBe('1');
+  });
+});
+
+describe('parseMaxVideoParam & resolveEffectiveYouTubePlayback', () => {
+  it('parses URL override durations and unlimited tokens', () => {
+    expect(parseMaxVideoParam(null)).toBeUndefined();
+    expect(parseMaxVideoParam('5m')).toBe(300);
+    expect(parseMaxVideoParam('90s')).toBe(90);
+    expect(parseMaxVideoParam('120')).toBe(120);
+    expect(parseMaxVideoParam('0')).toBeNull();
+    expect(parseMaxVideoParam('none')).toBeNull();
+    expect(parseMaxVideoParam('false')).toBeNull();
+    expect(parseMaxVideoParam('invalid')).toBeUndefined();
+  });
+
+  it('caps playback at start + maxDuration and respects explicit end trim & URL overrides', () => {
+    expect(resolveEffectiveYouTubePlayback({ maxDurationSeconds: 300 })).toEqual({
+      start: 0,
+      end: 300,
+      maxDurationSeconds: 300,
+      fallbackLimitSeconds: 300,
+    });
+
+    // Respects earlier explicit end trim
+    expect(resolveEffectiveYouTubePlayback({ start: 10, end: 120, maxDurationSeconds: 300 })).toEqual({
+      start: 10,
+      end: 120,
+      maxDurationSeconds: 300,
+      fallbackLimitSeconds: 110,
+    });
+
+    // Clamps longer explicit end trim when maxDuration is active
+    expect(resolveEffectiveYouTubePlayback({ end: 1287, maxDurationSeconds: 300 })).toEqual({
+      start: 0,
+      end: 300,
+      maxDurationSeconds: 300,
+      fallbackLimitSeconds: 300,
+    });
+
+    // URL override of null disables the cap so explicit end trim takes effect
+    expect(resolveEffectiveYouTubePlayback({ end: 1287, maxDurationSeconds: 300 }, null)).toEqual({
+      start: 0,
+      end: 1287,
+      maxDurationSeconds: null,
+      fallbackLimitSeconds: 1287,
+    });
+
+    // Unlimited video without end trim has no fallback limit
+    expect(resolveEffectiveYouTubePlayback({ maxDurationSeconds: null })).toEqual({
+      start: 0,
+      end: undefined,
+      maxDurationSeconds: null,
+      fallbackLimitSeconds: null,
+    });
   });
 });
